@@ -151,6 +151,13 @@ public class MusicPlayerGUI  extends JFrame {
         menuBar.add(playListMenu);
 
         JMenuItem createPlayList = new JMenuItem("Create Playlist");
+        createPlayList.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new MusicPlaylistDialog(MusicPlayerGUI.this).setVisible(true);
+
+            }
+        });
         menuBar.add(createPlayList);
 
         JMenuItem loadPlaylist = new JMenuItem("Load Playlist");
