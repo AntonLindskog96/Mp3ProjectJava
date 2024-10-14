@@ -7,7 +7,15 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 
 public class MusicPlayer extends PlaybackListener {
+
+    private static final Object playSignal = new Object();
+
+    private MusicPlayerGUI musicPlayerGUI;
+
     private Song currentSong;
+    public Song getCurrentSong() {
+        return currentSong;
+    }
 
     private AdvancedPlayer advancedPlayer;
 
@@ -15,8 +23,17 @@ public class MusicPlayer extends PlaybackListener {
 
     // stores where i pause the music to keep playing from where i stopped.
     private int currentFrame;
+    public void setCurrentFrame(int frame) {
+        currentFrame = frame;
+    }
 
-    public MusicPlayer() {
+    private int currentTimeInMilli;
+    public void setCurrentTimeInMilli(int timeInMilli) {
+        currentTimeInMilli = timeInMilli;
+    }
+
+    public MusicPlayer(MusicPlayerGUI musicPlayerGUI) {
+        this.musicPlayerGUI = musicPlayerGUI;
 
     }
 
@@ -44,7 +61,6 @@ public class MusicPlayer extends PlaybackListener {
         }
     }
     public void playCurrentSong() {
-        if(currentSong != null) return;
         try {
             FileInputStream fileInputStream = new FileInputStream(currentSong.getFilePath());
             BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
@@ -53,6 +69,9 @@ public class MusicPlayer extends PlaybackListener {
             advancedPlayer.setPlayBackListener(this);
 
             startMusicThread();
+
+            startPlaybackSliderThread();
+
         }catch (Exception e) {
             e.printStackTrace();
         }
@@ -64,6 +83,10 @@ public class MusicPlayer extends PlaybackListener {
             public void run() {
                 try {
                     if(isPaused) {
+                        synchronized (playSignal) {
+                            isPaused = false;
+                            playSignal.notify();
+                        }
                         //resume music
                         advancedPlayer.play(currentFrame, Integer.MAX_VALUE);
                     } else {
@@ -71,6 +94,36 @@ public class MusicPlayer extends PlaybackListener {
                     }
                 }catch(Exception e) {
                     e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    // update slider
+    private void startPlaybackSliderThread () {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if(isPaused) {
+                    try{
+                        synchronized (playSignal) {
+                            playSignal.wait();
+                        }
+                    }catch(Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                while(!isPaused) {
+                    try {
+                        currentTimeInMilli++;
+                        int calculatedFrame = (int) ((double) currentTimeInMilli * 2.08 * currentSong.getFrameRatePerMilliseconds());
+                        musicPlayerGUI.setPlaybackSliderValue(calculatedFrame);
+
+                        Thread.sleep(1);
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }).start();
@@ -85,11 +138,8 @@ public class MusicPlayer extends PlaybackListener {
     @Override
     public void playbackFinished(PlaybackEvent evt) {
         System.out.println("playback finished");
-
-
         if(isPaused) {
             currentFrame += (int) ((double) evt.getFrame() * currentSong.getFrameRatePerMilliseconds());
-            System.out.println("stopped at" + currentFrame);
         }
     }
 }
