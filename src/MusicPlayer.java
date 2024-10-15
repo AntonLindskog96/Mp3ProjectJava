@@ -3,8 +3,8 @@ import javazoom.jl.player.advanced.PlaybackEvent;
 import javazoom.jl.player.advanced.PlaybackListener;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
+import java.io.*;
+import java.util.ArrayList;
 
 public class MusicPlayer extends PlaybackListener {
 
@@ -16,6 +16,10 @@ public class MusicPlayer extends PlaybackListener {
     public Song getCurrentSong() {
         return currentSong;
     }
+
+    private ArrayList<Song> playlist;
+
+    private int currentPlaylistIndex;
 
     private AdvancedPlayer advancedPlayer;
 
@@ -32,6 +36,7 @@ public class MusicPlayer extends PlaybackListener {
         currentTimeInMilli = timeInMilli;
     }
 
+    // Constructor
     public MusicPlayer(MusicPlayerGUI musicPlayerGUI) {
         this.musicPlayerGUI = musicPlayerGUI;
 
@@ -45,12 +50,43 @@ public class MusicPlayer extends PlaybackListener {
         }
     }
 
+    public void loadPlaylist(File playlistFile) {
+        playlist = new ArrayList<>();
+
+        try {
+            FileReader fileReader = new FileReader(playlistFile);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+            String songPath;
+            while((songPath = bufferedReader.readLine()) != null){
+                Song song = new Song(songPath);
+
+                playlist.add(song);
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        if(playlist.size() > 0) {
+            musicPlayerGUI.setPlaybackSliderValue(0);
+            currentTimeInMilli = 0;
+
+            currentSong = playlist.get(0);
+
+            currentFrame = 0;
+
+            musicPlayerGUI.enablePauseButtonDisablePlayButton();
+            musicPlayerGUI.updateSongTitleAndArtist(currentSong);
+            musicPlayerGUI.updatePlaybackSlider(currentSong);
+
+            playCurrentSong();
+        }
+    }
+
     public void pauseSong() {
     if(advancedPlayer != null) {
         isPaused = true;
 
         stopSong();
-
     }
     }
     public void stopSong(){
@@ -59,6 +95,50 @@ public class MusicPlayer extends PlaybackListener {
             advancedPlayer.close();
             advancedPlayer = null;
         }
+    }
+
+    public void nextSong(){
+        if(playlist == null) return;
+
+        stopSong();
+
+        if(currentPlaylistIndex +1 > playlist.size() -1) return;
+
+        currentPlaylistIndex++;
+
+        currentSong = playlist.get(currentPlaylistIndex);
+
+        currentFrame = 0;
+
+        currentTimeInMilli = 0;
+
+        musicPlayerGUI.enablePauseButtonDisablePlayButton();
+        musicPlayerGUI.updateSongTitleAndArtist(currentSong);
+        musicPlayerGUI.updatePlaybackSlider(currentSong);
+
+        playCurrentSong();
+    }
+
+    public void prevSong(){
+        if(playlist == null) return;
+
+        if(currentPlaylistIndex -1 < 0) return;
+
+        stopSong();
+
+        currentPlaylistIndex--;
+
+        currentSong = playlist.get(currentPlaylistIndex);
+
+        currentFrame = 0;
+
+        currentTimeInMilli = 0;
+
+        musicPlayerGUI.enablePauseButtonDisablePlayButton();
+        musicPlayerGUI.updateSongTitleAndArtist(currentSong);
+        musicPlayerGUI.updatePlaybackSlider(currentSong);
+
+        playCurrentSong();
     }
     public void playCurrentSong() {
         try {

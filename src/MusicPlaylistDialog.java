@@ -3,7 +3,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 
 public class MusicPlaylistDialog extends JDialog {
@@ -68,6 +70,40 @@ public class MusicPlaylistDialog extends JDialog {
             JButton savePlaylistButton = new JButton("Save");
             savePlaylistButton.setBounds(215, (int) (getHeight() * 0.80), 100, 25);
             savePlaylistButton.setFont(new Font("Dialog", Font.BOLD, 14));
+            savePlaylistButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+               try {
+                   JFileChooser jFileChooser = new JFileChooser();
+                   jFileChooser.setCurrentDirectory(new File("src/assets"));
+                   int result = jFileChooser.showSaveDialog(MusicPlaylistDialog.this);
+
+                   if(result == JFileChooser.APPROVE_OPTION){
+                       File selectedFile = jFileChooser.getSelectedFile();
+
+                       if(!selectedFile.getName().substring(selectedFile.getName().length() - 4).equalsIgnoreCase(".txt")){
+                           selectedFile = new File(selectedFile.getAbsoluteFile() + ".txt");
+                       }
+                       selectedFile.createNewFile();
+
+                       FileWriter fileWriter = new FileWriter(selectedFile);
+                       BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+                       for(String songPath : songPaths){
+                           bufferedWriter.write(songPath + "\n");
+                       }
+                       bufferedWriter.close();
+
+                       JOptionPane.showMessageDialog(musicPlayerGUI, "Successfully saved the file!");
+
+                       MusicPlaylistDialog.this.dispose();
+                   }
+               }catch (Exception exception) {
+                   exception.printStackTrace();
+               }
+                }
+            });
+            add(savePlaylistButton);
     }
 }
 
